@@ -7,16 +7,16 @@ namespace StoneXXI.Views.ExchangeRate
         [XmlAttribute("ID")]
         public string Code { get; set; }
 
-        [XmlAttribute("NumCode")]
+        [XmlElement("NumCode")]
         public string NumberCode { get; set; }
 
-        [XmlAttribute("Nominal")]
+        [XmlElement("Nominal")]
         public string Nominal { get; set; }
 
-        [XmlAttribute("Name")]
+        [XmlElement("Name")]
         public string Name { get; set; }
 
-        [XmlAttribute("Value")]
+        [XmlElement("Value")]
         public string Value { get; set; }
     }
 }

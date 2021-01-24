@@ -1,4 +1,5 @@
-﻿using System.Xml.Serialization;
+﻿using System.Collections.Generic;
+using System.Xml.Serialization;
 
 namespace StoneXXI.Views.ExchangeRate
 {
@@ -6,6 +7,6 @@ namespace StoneXXI.Views.ExchangeRate
     public class ExchangeRateXmlViews
     {
         [XmlElement("Valute")]
-        public ExchangeRateXmlView[] exchangeRates;
+        public List<ExchangeRateXmlView> exchangeRates;
     }
 }
