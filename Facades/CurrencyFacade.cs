@@ -1,48 +1,66 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RuVdsTest;
+using StoneXXI.Clients;
 using StoneXXI.DB.Contexts;
 using StoneXXI.DB.Models;
-using StoneXXI.Views.Currency;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace StoneXXI.Facades
 {
+    /// <summary>
+    /// Фасад для работы с валютой
+    /// </summary>
     public class CurrencyFacade
     {
         private readonly ApplicationContext _context;
-        private readonly IHttpClientFactory _clientFactory;
-        private const string currencyUrl = "http://www.cbr.ru/scripts/XML_valFull.asp";
+        private readonly CbrHttpClient _client;
 
-        public CurrencyFacade(ApplicationContext context, IHttpClientFactory clientFactory)
+        public CurrencyFacade(ApplicationContext context, CbrHttpClient client)
         {
             _context = context;
-            _clientFactory = clientFactory;
+            _client = client;
         }
 
-        public async Task UploadCurrency()
+        /// <summary>
+        /// Загрузить валюты в базу
+        /// </summary>        
+        public async Task<Result> UploadCurrency()
         {
-            var client = _clientFactory.CreateClient();
-            var response = await client.GetAsync(currencyUrl);
-            var currencys = new CurrencyXmlViews();
-            if (response.IsSuccessStatusCode)
+            var currencysRes = await _client.GetCurrencyAsync();
+            if (currencysRes.Failure)
+                return Result.Fail(currencysRes.Error);
+
+            var currencyModels = currencysRes.Value.Currencys.ConvertAll(Currency.ConvertFrom);
+            try
             {
-                using var responseStream = await response.Content.ReadAsStreamAsync();
-                var serializer = new XmlSerializer(typeof(CurrencyXmlViews));
-                currencys = (CurrencyXmlViews)serializer.Deserialize(responseStream);
+                var currencyInBase = await _context.Currencys.Select(x => x.Code).ToListAsync();
+                var toUpload = currencyModels.Where(x => !currencyInBase.Contains(x.Code));
+                _context.Currencys.AddRange(toUpload);
+                await _context.SaveChangesAsync();
+                return Result.Ok();
             }
-            var currencyModels = currencys.Currencys.ConvertAll(Currency.ConvertFrom);
-            var currencyInBase = await _context.Currencys.Select(x => x.Code).ToListAsync();
-            var toUpload = currencyModels.Where(x => !currencyInBase.Contains(x.Code));
-            _context.Currencys.AddRange(toUpload);
-            await _context.SaveChangesAsync();
+            catch (System.Exception)
+            {
+                return Result.Fail("Произошла ошибка при работе с данными");
+            }
         }
 
-        public async Task<List<Currency>> GetAllAsync()
+        /// <summary>
+        /// Получить все валюты
+        /// </summary>
+        public async Task<Result<List<Currency>>> GetAllAsync()
         {
-            return await _context.Currencys.ToListAsync();
+            try
+            {
+                return Result.Ok(await _context.Currencys.ToListAsync());
+            }
+            catch (System.Exception)
+            {
+                return Result.Fail<List<Currency>>("Не удалось получить валюты")ж
+            }
+
         }
     }
 }

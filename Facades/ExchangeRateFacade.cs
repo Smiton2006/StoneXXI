@@ -1,57 +1,69 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using RuVdsTest;
+using StoneXXI.Clients;
 using StoneXXI.DB.Contexts;
 using StoneXXI.DB.Models;
-using StoneXXI.Views.ExchangeRate;
 using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 
 namespace StoneXXI.Facades
 {
+    /// <summary>
+    /// Фасад для работы с курсом обмена
+    /// </summary>
     public class ExchangeRateFacade
     {
         private readonly ApplicationContext _context;
-        private readonly IHttpClientFactory _clientFactory;
+        private readonly CbrHttpClient _client;
         private const string defaultCurrencyIsoCharCode = "USD";
 
-        public ExchangeRateFacade(ApplicationContext context, IHttpClientFactory clientFactory)
+        public ExchangeRateFacade(ApplicationContext context, CbrHttpClient client)
         {
             _context = context;
-            _clientFactory = clientFactory;
+            _client = client;
         }
-        
-        public async Task UploadCurrentExchangeRate()
+
+        /// <summary>
+        /// Загузить сегодняшний курс в базу
+        /// </summary>
+        public async Task<Result> UploadCurrentExchangeRateAsync()
         {
-            const string url = "http://www.cbr.ru/scripts/XML_daily.asp";
-            var param = new Dictionary<string, string>() { { "date_req", DateTime.Now.Date.ToString() } };
-
-            var newUrl = new Uri(QueryHelpers.AddQueryString(url, param));
-
-            var client = _clientFactory.CreateClient();
-            var response = await client.GetAsync(newUrl);
-            var rates = new ExchangeRateXmlViews();
-            if (response.IsSuccessStatusCode)
-            {                
-                using var responseStream = await response.Content.ReadAsStreamAsync();
-                var serializer = new XmlSerializer(typeof(ExchangeRateXmlViews));
-                rates = (ExchangeRateXmlViews)serializer.Deserialize(responseStream);
+            var ratesRes = await _client.GetExchangeRateAsync(DateTime.Now);
+            if (ratesRes.Failure)
+                return Result.Fail(ratesRes.Error);
+            try
+            {
+                var rateModels = ratesRes.Value.exchangeRates.ConvertAll(ExchangeRate.ConvertFrom);
+                _context.ExchangeRate.AddRange(rateModels);
+                await _context.SaveChangesAsync();
+                return Result.Ok();
             }
-
-            var rateModels = rates.exchangeRates.ConvertAll(ExchangeRate.ConvertFrom);
-            _context.ExchangeRate.AddRange(rateModels);
-            await _context.SaveChangesAsync();
+            catch (Exception)
+            {
+                return Result.Fail("Произошла ошибка при загрузки курса");
+            }
         }
 
-        public async Task<ExchangeRate> GetExchangeRate(string isoCharCode, DateTime dateTime)
+        /// <summary>
+        /// Получить курс обмена
+        /// </summary>
+        /// <param name="isoCharCode">Символьный ISO код валюты</param>
+        /// <param name="dateTime">Дата курса обмена</param>
+        public async Task<Result<ExchangeRate>> GetExchangeRate(string isoCharCode, DateTime dateTime)
         {
-            return await _context.ExchangeRate
-                .FirstOrDefaultAsync(x => x.Currency.IsoCharCode == isoCharCode && x.Date.Date == dateTime.Date);
+            try
+            {
+                var res = await _context.ExchangeRate
+                    .FirstOrDefaultAsync(x => x.Currency.IsoCharCode == isoCharCode && x.Date.Date == dateTime.Date);
+                return Result.Ok(res);
+            }
+            catch (Exception)
+            {
+                return Result.Fail<ExchangeRate>("Произошла ошибка при получении курса");
+            }
         }
 
-        public async Task<ExchangeRate> GetDefaultExchangeRate()
+        public async Task<Result<ExchangeRate>> GetDefaultExchangeRate()
         {
             return await GetExchangeRate(defaultCurrencyIsoCharCode, DateTime.Now);
         }
