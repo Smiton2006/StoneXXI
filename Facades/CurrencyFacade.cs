@@ -15,9 +15,9 @@ namespace StoneXXI.Facades
     public class CurrencyFacade
     {
         private readonly ApplicationContext _context;
-        private readonly CbrHttpClient _client;
+        private readonly ICbrClient _client;
 
-        public CurrencyFacade(ApplicationContext context, CbrHttpClient client)
+        public CurrencyFacade(ApplicationContext context, ICbrClient client)
         {
             _context = context;
             _client = client;
@@ -58,7 +58,7 @@ namespace StoneXXI.Facades
             }
             catch (System.Exception)
             {
-                return Result.Fail<List<Currency>>("Не удалось получить валюты")ж
+                return Result.Fail<List<Currency>>("Не удалось получить валюты");
             }
 
         }

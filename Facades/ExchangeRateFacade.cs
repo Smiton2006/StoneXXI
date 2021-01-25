@@ -14,10 +14,10 @@ namespace StoneXXI.Facades
     public class ExchangeRateFacade
     {
         private readonly ApplicationContext _context;
-        private readonly CbrHttpClient _client;
+        private readonly ICbrClient _client;
         private const string defaultCurrencyIsoCharCode = "USD";
 
-        public ExchangeRateFacade(ApplicationContext context, CbrHttpClient client)
+        public ExchangeRateFacade(ApplicationContext context, ICbrClient client)
         {
             _context = context;
             _client = client;

@@ -27,5 +27,15 @@ namespace StoneXXI.DB.Contexts
         /// </summary>
         public DbSet<ExchangeRate> ExchangeRate { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ExchangeRate>()
+                .HasIndex(x => x.Date)
+                .IsClustered(false);
+
+            modelBuilder.Entity<Currency>()
+                .HasIndex(x => x.Code)
+                .IsClustered(false);
+        }
     }
 }

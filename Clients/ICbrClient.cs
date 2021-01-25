@@ -9,7 +9,7 @@ namespace StoneXXI.Clients
     /// <summary>
     /// Интерфейс для работы с центробанком
     /// </summary>
-    interface ICbrClient
+    public interface ICbrClient
     {
         /// <summary>
         /// Получить валютный курс за указанную дату
