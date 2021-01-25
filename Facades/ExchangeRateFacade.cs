@@ -5,7 +5,6 @@ using StoneXXI.DB.Models;
 using StoneXXI.Views.ExchangeRate;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
@@ -35,8 +34,7 @@ namespace StoneXXI.Facades
             var response = await client.GetAsync(newUrl);
             var rates = new ExchangeRateXmlViews();
             if (response.IsSuccessStatusCode)
-            {
-                var str = await response.Content.ReadAsStringAsync();
+            {                
                 using var responseStream = await response.Content.ReadAsStreamAsync();
                 var serializer = new XmlSerializer(typeof(ExchangeRateXmlViews));
                 rates = (ExchangeRateXmlViews)serializer.Deserialize(responseStream);
